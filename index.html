@@ -738,8 +738,11 @@
             const extension = file.name.split('.').pop();
             const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
 
+            const shortId =
+            Math.random().toString(36).substring(2,8);
+
             const fileName =
-            `${Date.now()}-${Math.random().toString(36).substring(2)}-${safeName}`;
+            `${shortId}-${safeName}`;
 
             try {
                 // Start progress animation
@@ -804,7 +807,7 @@
                     renderHistory();
                     
                     // Auto-copy link
-                    copyToClipboard(publicUrl);
+                    copyToClipboard(currentFileData.url);
                     showToast('✅ Upload complete! Link copied.');
                 }, 500);
 
