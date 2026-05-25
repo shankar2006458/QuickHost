@@ -289,7 +289,7 @@
                 </div>
 
                 <h1 class="text-3xl font-bold tracking-tight">
-                    quick<span class="text-cyan-400">host</span>
+                    Quick<span class="text-cyan-400">Host</span>
                 </h1>
             </div>
 
@@ -401,22 +401,6 @@
                 <div id="expirationOptions" class="flex flex-wrap gap-2">
                     <!-- Filled by JS -->
                 </div>
-            </div>
-
-            <!-- Custom short link -->
-            <div class="mb-5">
-                <label class="text-xs text-gray-500 mb-2 block uppercase tracking-wider font-medium">Custom Short Link (optional)</label>
-                <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-500 flex-shrink-0">quickhost.app/f/</span>
-                    <input
-                    type="text"
-                    id="customSlug"
-                    placeholder="my-file"
-                    maxlength="30"
-                    class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 smooth-transition"
-                    />
-                </div>
-                <p id="slugFeedback" class="text-xs text-gray-600 mt-1 hidden"></p>
             </div>
 
             <!-- Generated links -->
@@ -542,9 +526,7 @@
         const resultSize = document.getElementById('resultSize');
         const directLinkDisplay = document.getElementById('directLinkDisplay');
         const htmlLinkDisplay = document.getElementById('htmlLinkDisplay');
-        const markdownLinkDisplay = document.getElementById('markdownLinkDisplay');
-        const customSlug = document.getElementById('customSlug');
-        const slugFeedback = document.getElementById('slugFeedback');
+        const markdownLinkDisplay = document.getElementById('markdownLinkDisplay');        
         const expirationOptions = document.getElementById('expirationOptions');
         const historySection = document.getElementById('historySection');
         const historyList = document.getElementById('historyList');
@@ -557,7 +539,6 @@
         window.location.origin +
         window.location.pathname.replace(/\/$/, '');
         let currentFileData = null;
-        let generatedSlug = '';
         let selectedExpiration = 'permanent'; // default
         let uploadHistory = [];
         let isUploading = false;
@@ -578,7 +559,6 @@
             renderExpirationOptions();
             setupDragAndDrop();
             setupFileInput();
-            setupCustomSlugListener();
             renderHistory();
         }
 
@@ -659,26 +639,6 @@
                     handleFile(fileInput.files[0]);
                     fileInput.value = ''; // Reset so same file can be re-selected
                 }
-            });
-        }
-
-        // ==================== CUSTOM SLUG LISTENER ====================
-        function setupCustomSlugListener() {
-            customSlug.addEventListener('input', () => {
-                const val = customSlug.value.trim();
-                // Validate: alphanumeric, hyphens, underscores only
-                if (val.length > 0 && !/^[a-zA-Z0-9_-]+$/.test(val)) {
-                    slugFeedback.textContent = 'Only letters, numbers, hyphens, and underscores allowed.';
-                    slugFeedback.classList.remove('hidden');
-                    slugFeedback.classList.add('text-yellow-400');
-                } else if (val.length > 30) {
-                    slugFeedback.textContent = 'Max 30 characters.';
-                    slugFeedback.classList.remove('hidden');
-                    slugFeedback.classList.add('text-yellow-400');
-                } else {
-                    slugFeedback.classList.add('hidden');
-                }
-                updateGeneratedLinks();
             });
         }
 
@@ -853,7 +813,6 @@
 
             // Store in current data
             currentFileData.url = fileUrl;
-            currentFileData.slug = generatedSlug;
             currentFileData.localPreviewUrl = localPreviewUrl;
             currentFileData.expiration = selectedExpiration;
             currentFileData.timestamp = Date.now();
@@ -1067,8 +1026,6 @@
             dropzoneCard.classList.remove('hidden');
             dropzoneCard.classList.add('animate-fade-in');
             currentFileData = null;
-            generatedSlug = '';
-            customSlug.value = '';
             previewContainer.innerHTML = '';
             isUploading = false;
             dropzoneCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1304,7 +1261,6 @@
 
         console.log('🚀 QuickHost ready!');
         console.log('☁️ Server connected successfully.');
-        console.log('🔗 To integrate Firebase Storage, replace the startUpload() function.');
         console.log('💡 Tip: Press Ctrl+Shift+U to open file browser, Esc to reset.');
         console.log('📁 Max file size:', formatFileSize(MAX_FILE_SIZE));
     })();
