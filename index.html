@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickHost — Free File Hosting</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in': 'fadeIn 0.4s ease-out',
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'shimmer': 'shimmer 1.5s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        glow: {
+                            '0%': { boxShadow: '0 0 20px rgba(99, 102, 241, 0.3)' },
+                            '100%': { boxShadow: '0 0 40px rgba(99, 102, 241, 0.6)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style>
+        /* Custom styles for glassmorphism and effects */
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.04);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-highlight: rgba(255, 255, 255, 0.06);
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background:
+                radial-gradient(circle at top, rgba(0,255,200,0.12), transparent 35%),
+                radial-gradient(circle at bottom right, rgba(168,85,247,0.10), transparent 30%),
+                #050816;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-attachment: fixed;
+        }
+
+        /* Subtle animated background orbs */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.25;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .bg-orb-1 {
+            width: 500px;
+            height: 500px;
+            background: #6366f1;
+            top: -15%;
+            left: -10%;
+            animation: orbFloat1 20s ease-in-out infinite;
+        }
+        .bg-orb-2 {
+            width: 400px;
+            height: 400px;
+            background: #8b5cf6;
+            bottom: -12%;
+            right: -8%;
+            animation: orbFloat2 25s ease-in-out infinite;
+        }
+        .bg-orb-3 {
+            width: 300px;
+            height: 300px;
+            background: #a855f7;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: orbFloat3 18s ease-in-out infinite;
+        }
+
+        @keyframes orbFloat1 {
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+            25% {
+                transform: translate(80px, 60px) scale(1.15);
+            }
+            50% {
+                transform: translate(-30px, 120px) scale(0.9);
+            }
+            75% {
+                transform: translate(-60px, -40px) scale(1.1);
+            }
+        }
+        @keyframes orbFloat2 {
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(-70px, -80px) scale(1.2);
+            }
+            66% {
+                transform: translate(50px, -30px) scale(0.85);
+            }
+        }
+        @keyframes orbFloat3 {
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.3);
+            }
+        }
+
+        /* Glass card */
+        .glass-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border-radius: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 var(--glass-highlight);
+        }
+
+        .glass-card-hover:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        /* Dropzone active state */
+        .dropzone-active {
+            border-color: #6366f1 !important;
+            background: rgba(99, 102, 241, 0.1) !important;
+            box-shadow: 0 0 60px rgba(99, 102, 241, 0.35), inset 0 0 40px rgba(99, 102, 241, 0.05) !important;
+            animation: glow 1.5s ease-in-out infinite alternate !important;
+        }
+
+        /* Progress bar shimmer */
+        .progress-shimmer {
+            background: linear-gradient(90deg,
+                    transparent 0%,
+                    rgba(255, 255, 255, 0.15) 25%,
+                    rgba(255, 255, 255, 0.3) 50%,
+                    rgba(255, 255, 255, 0.15) 75%,
+                    transparent 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        /* Success glow */
+        .success-glow {
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), 0 0 60px rgba(16, 185, 129, 0.15);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Smooth transitions */
+        .smooth-transition {
+            transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            z-index: 100;
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+            opacity: 0;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Focus ring */
+        input:focus,
+        button:focus-visible {
+            outline: 2px solid #6366f1;
+            outline-offset: 2px;
+            border-radius: 8px;
+        }
+
+        /* File preview media fit */
+        .preview-media {
+            max-height: 320px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.4);
+        }
+        video.preview-media,
+        audio.preview-media {
+            width: 100%;
+            max-height: 280px;
+        }
+
+        .hero-title{
+            font-size: clamp(2.2rem, 5vw, 4rem);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -0.05em;
+        }
+
+        .hero-gradient{
+            background: linear-gradient(90deg,#00f5d4,#00d9f5);
+            -webkit-background-clip:text;
+            -webkit-text-fill-color:transparent;
+        }
+
+        .hero-subtitle{
+            color: rgba(255,255,255,0.6);
+            font-size: 1.25rem;
+            line-height: 1.6;
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        .nav-link{
+            letter-spacing: .35em;
+            text-transform: uppercase;
+            font-size: .72rem;
+            color: rgba(255,255,255,.5);
+        }
+    </style>
+</head>
+<body class="text-white antialiased">
+
+    <!-- Floating background orbs -->
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast bg-emerald-600/90 backdrop-blur-md text-white px-6 py-3 rounded-full text-sm font-medium shadow-2xl border border-emerald-400/30 z-[100]">
+        ✅ Link copied to clipboard!
+    </div>
+
+    <!-- Main container -->
+    <div class="relative z-10 max-w-2xl mx-auto px-4 py-6 sm:py-10 min-h-screen flex flex-col">
+
+        <!-- Navbar -->
+        <nav class="flex items-center justify-between mb-6 relative z-20">
+            
+            <div class="flex items-center gap-3">
+                
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-purple-500 flex items-center justify-center shadow-2xl">
+                    
+                    <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"
+                        d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                    </svg>
+                </div>
+
+                <h1 class="text-3xl font-bold tracking-tight">
+                    quick<span class="text-cyan-400">host</span>
+                </h1>
+            </div>
+
+            <div class="hidden md:flex items-center gap-6 nav-link">
+
+                <span class="nav-tag">drop · upload · share</span>
+
+            </div>
+
+        </nav>
+
+        <!-- Main content -->
+        <main class="flex-1 flex flex-col gap-6">
+
+            <!-- Hero Section -->
+            <section class="relative text-center py-2 sm:py-6 overflow-hidden">
+
+                <div class="glow-bg"></div>
+
+                <div class="relative z-10">
+                    
+                    <h1 class="hero-title text-white">
+                        Host any file in
+                        <span class="hero-gradient">seconds.</span>
+                    </h1>
+
+                    <p class="hero-subtitle mt-3">
+                        Drag, drop, done. No signup. Get a shareable link instantly — up to 70.0 MB.
+                    </p>
+
+                </div>
+
+            </section>
+
+            <!-- ============ UPLOAD CARD (Dropzone) ============ -->
+            <div id="dropzoneCard" class="glass-card glass-card-hover p-10 sm:p-14 text-center cursor-pointer smooth-transition relative overflow-hidden">
+                <!-- Dropzone visual -->
+                <div id="dropzoneInner" class="flex flex-col items-center gap-4 pointer-events-none">
+                    <!-- Upload icon -->
+                    <div class="w-20 h-20 rounded-2xl bg-indigo-500/15 flex items-center justify-center mb-2">
+                        <svg class="w-10 h-10 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                            d="M12 16V4m0 0L8 8m4-4l4 4M20 16v2a4 4 0 01-4 4H8a4 4 0 01-4-4v-2" />
+                        </svg>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-semibold text-white">Drag & Drop Files Here</h2>
+                    <p class="text-gray-400 text-sm sm:text-base">or click to browse your device</p>
+                    <div class="flex flex-wrap gap-2 justify-center mt-2">
+                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">Images</span>
+                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">Videos</span>
+                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">Audio</span>
+                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">PDFs</span>
+                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">ZIP</span>
+                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">Any File</span>
+                    </div>
+                </div>
+                <!-- Hidden file input -->
+                <input type="file" id="fileInput" class="hidden" />
+                <!-- Drop overlay hint (shown during drag) -->
+                <div id="dropOverlay" class="absolute inset-0 flex items-center justify-center bg-indigo-500/10 opacity-0 pointer-events-none smooth-transition rounded-3xl">
+                    <span class="text-2xl font-bold text-indigo-300">Release to Upload ✨</span>
+                </div>
+            </div>
+
+            <!-- ============ PROGRESS SECTION ============ -->
+            <div id="progressSection" class="glass-card p-6 sm:p-8 hidden animate-fade-in">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-indigo-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a4 4 0 004 4h8a4 4 0 004-4v-2M12 12V4m0 0L8 8m4-4l4 4" />
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="progressFilename" class="text-sm font-medium text-white truncate">uploading...</p>
+                        <p id="progressPercent" class="text-xs text-gray-400">0%</p>
+                    </div>
+                    <span id="progressSize" class="text-xs text-gray-500 flex-shrink-0">—</span>
+                </div>
+                <!-- Progress bar -->
+                <div class="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                    <div id="progressBarFill" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full progress-shimmer smooth-transition"
+                    style="width: 0%;"></div>
+                </div>
+                <p id="progressSpeed" class="text-xs text-gray-500 mt-2 text-right">—</p>
+            </div>
+
+            <!-- ============ RESULT CARD ============ -->
+            <div id="resultCard" class="glass-card p-6 sm:p-8 hidden animate-slide-up success-glow">
+                <!-- File preview -->
+                <div id="previewContainer" class="mb-5 flex justify-center"></div>
+
+                <!-- File info header -->
+                <div class="flex items-start gap-4 mb-5">
+                    <div id="fileTypeBadge" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex-shrink-0">
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p id="resultFilename" class="text-sm font-semibold text-white truncate"></p>
+                        <p id="resultSize" class="text-xs text-gray-400"></p>
+                    </div>
+                    <button onclick="openFile()"
+                    class="flex-shrink-0 px-4 py-2 text-xs font-semibold bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-xl border border-indigo-400/20 hover:border-indigo-400/40 smooth-transition shadow-lg shadow-indigo-500/10">
+                        🔗 Open File
+                    </button>
+            </div>
+
+            <!-- Expiration selector -->
+            <div class="mb-4">
+                <p class="text-xs text-gray-500 mb-2 uppercase tracking-wider font-medium">Link Expiration</p>
+                <div id="expirationOptions" class="flex flex-wrap gap-2">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+
+            <!-- Custom short link -->
+            <div class="mb-5">
+                <label class="text-xs text-gray-500 mb-2 block uppercase tracking-wider font-medium">Custom Short Link (optional)</label>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-500 flex-shrink-0">quickhost.app/f/</span>
+                    <input
+                    type="text"
+                    id="customSlug"
+                    placeholder="my-file"
+                    maxlength="30"
+                    class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 smooth-transition"
+                    />
+                </div>
+                <p id="slugFeedback" class="text-xs text-gray-600 mt-1 hidden"></p>
+            </div>
+
+            <!-- Generated links -->
+            <div class="space-y-3">
+                <p class="text-xs text-gray-500 uppercase tracking-wider font-medium">Copy Links</p>
+
+                <!-- Direct Link -->
+                <div class="flex items-center gap-2 bg-white/3 rounded-xl px-4 py-3 border border-white/5">
+                    <span class="text-xs text-gray-500 flex-shrink-0 w-20">Direct</span>
+                    <code id="directLinkDisplay" class="text-sm text-indigo-300 truncate flex-1"></code>
+                    <button onclick="copyLink('direct')" data-copy-btn
+                    class="flex-shrink-0 px-3 py-1.5 text-xs bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg smooth-transition font-medium">
+                    Copy
+                </button>
+            </div>
+
+            <!-- HTML Link -->
+            <div class="flex items-center gap-2 bg-white/3 rounded-xl px-4 py-3 border border-white/5">
+                <span class="text-xs text-gray-500 flex-shrink-0 w-20">HTML</span>
+                <code id="htmlLinkDisplay" class="text-sm text-indigo-300 truncate flex-1"></code>
+                <button onclick="copyLink('html')" data-copy-btn
+                class="flex-shrink-0 px-3 py-1.5 text-xs bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg smooth-transition font-medium">
+                Copy
+            </button>
+        </div>
+
+        <!-- Markdown Link -->
+        <div class="flex items-center gap-2 bg-white/3 rounded-xl px-4 py-3 border border-white/5">
+            <span class="text-xs text-gray-500 flex-shrink-0 w-20">Markdown</span>
+            <code id="markdownLinkDisplay" class="text-sm text-indigo-300 truncate flex-1"></code>
+            <button onclick="copyLink('markdown')" data-copy-btn
+            class="flex-shrink-0 px-3 py-1.5 text-xs bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg smooth-transition font-medium">
+            Copy
+        </button>
+    </div>
+</div>
+
+<!-- Action buttons -->
+<div class="flex gap-3 mt-5">
+    <button onclick="uploadAnother()"
+    class="flex-1 py-2.5 text-sm font-semibold bg-white/5 hover:bg-white/10 text-white rounded-xl smooth-transition border border-white/10">
+        ⬆️ Upload Another
+    </button>
+    <button onclick="copyLink('direct')"
+    class="flex-1 py-2.5 text-sm font-medium bg-indigo-500/80 hover:bg-indigo-500 text-white rounded-xl smooth-transition shadow-lg shadow-indigo-500/20">
+    📋 Copy Direct Link
+    </button>
+</div>
+</div>
+
+<!-- ============ UPLOAD HISTORY ============ -->
+<div id="historySection" class="glass-card p-6 sm:p-8 hidden animate-fade-in">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-white">📁 Recent Uploads</h3>
+        <button onclick="clearHistory()"
+        class="text-xs text-red-400 hover:text-red-300 smooth-transition px-3 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20">
+        Clear All
+    </button>
+</div>
+<div id="historyList" class="space-y-2 max-h-80 overflow-y-auto">
+    <!-- Filled by JS -->
+</div>
+</div>
+</main>
+
+<!-- Footer -->
+<footer class="mt-12 text-center text-xs text-gray-600 pb-6">
+    <p>QuickHost — Free & Anonymous File Hosting powered by Supabase.</p>
+    <p class="mt-1">Built with ❤️ · Ready for Firebase Storage integration</p>
+</footer>
+</div>
+
+<script>
+
+    // ==================== SUPABASE ====================
+    const SUPABASE_URL = "https://biilaaqcrsctidhitwyy.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_Nq_mu2HwbUvAOvdQOdRItA_Y4zqrfVu";
+
+    const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
+
+    (function() {
+        // ==================== DOM ELEMENTS ====================
+        const dropzoneCard = document.getElementById('dropzoneCard');
+        const dropzoneInner = document.getElementById('dropzoneInner');
+        const dropOverlay = document.getElementById('dropOverlay');
+        const fileInput = document.getElementById('fileInput');
+        const progressSection = document.getElementById('progressSection');
+        const resultCard = document.getElementById('resultCard');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const progressFilename = document.getElementById('progressFilename');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressSize = document.getElementById('progressSize');
+        const progressSpeed = document.getElementById('progressSpeed');
+        const previewContainer = document.getElementById('previewContainer');
+        const fileTypeBadge = document.getElementById('fileTypeBadge');
+        const resultFilename = document.getElementById('resultFilename');
+        const resultSize = document.getElementById('resultSize');
+        const directLinkDisplay = document.getElementById('directLinkDisplay');
+        const htmlLinkDisplay = document.getElementById('htmlLinkDisplay');
+        const markdownLinkDisplay = document.getElementById('markdownLinkDisplay');
+        const customSlug = document.getElementById('customSlug');
+        const slugFeedback = document.getElementById('slugFeedback');
+        const expirationOptions = document.getElementById('expirationOptions');
+        const historySection = document.getElementById('historySection');
+        const historyList = document.getElementById('historyList');
+        const toast = document.getElementById('toast');
+        const allCopyBtns = document.querySelectorAll('[data-copy-btn]');
+
+        // ==================== STATE ====================
+        const MAX_FILE_SIZE = 70 * 1024 * 1024; // 70MB
+        const DEMO_BASE_URL = window.location.origin;
+        let currentFileData = null;
+        let generatedSlug = '';
+        let selectedExpiration = 'permanent'; // default
+        let uploadHistory = [];
+        let isUploading = false;
+
+        // Expiration options config
+        const expirationConfig = [
+            { value: '1hour', label: '1 Hour', emoji: '🕐' },
+            { value: '1day', label: '1 Day', emoji: '📅' },
+            { value: '10days', label: '10 Days', emoji: '📆' },
+            { value: '30days', label: '30 Days', emoji: '🗓️' },
+            { value: '90days', label: '90 Days', emoji: '📊' },
+            { value: 'permanent', label: 'Permanent', emoji: '♾️' },
+        ];
+
+        // ==================== INITIALIZATION ====================
+        function init() {
+            loadHistory();
+            renderExpirationOptions();
+            setupDragAndDrop();
+            setupFileInput();
+            setupCustomSlugListener();
+            renderHistory();
+        }
+
+        // ==================== EXPIRATION OPTIONS ====================
+        function renderExpirationOptions() {
+            expirationOptions.innerHTML = expirationConfig.map(opt => `
+            <button
+              data-expiration="${opt.value}"
+              class="expiration-btn px-3 py-1.5 rounded-full text-xs font-medium smooth-transition border
+                ${selectedExpiration === opt.value
+                  ? 'bg-indigo-500/30 border-indigo-400/50 text-indigo-200'
+                  : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-300'
+                }"
+            >
+              ${opt.emoji} ${opt.label}
+            </button>
+          `).join('');
+
+            // Add click listeners
+            document.querySelectorAll('.expiration-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectedExpiration = btn.dataset.expiration;
+                    renderExpirationOptions();
+                    updateGeneratedLinks();
+                });
+            });
+        }
+
+        // ==================== DRAG & DROP ====================
+        function setupDragAndDrop() {
+            // Click to browse
+            dropzoneCard.addEventListener('click', (e) => {
+                if (isUploading) return;
+                if (e.target.closest('#resultCard') || e.target.closest('button')) return;
+                fileInput.click();
+            });
+
+            // Prevent default drag behaviors on the whole document
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                document.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            // Highlight dropzone on drag over
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzoneCard.addEventListener(eventName, () => {
+                    if (isUploading) return;
+                    dropzoneCard.classList.add('dropzone-active');
+                    dropOverlay.style.opacity = '1';
+                });
+            });
+
+            // Remove highlight on drag leave
+            dropzoneCard.addEventListener('dragleave', (e) => {
+                if (!dropzoneCard.contains(e.relatedTarget)) {
+                    dropzoneCard.classList.remove('dropzone-active');
+                    dropOverlay.style.opacity = '0';
+                }
+            });
+
+            // Handle drop
+            dropzoneCard.addEventListener('drop', (e) => {
+                dropzoneCard.classList.remove('dropzone-active');
+                dropOverlay.style.opacity = '0';
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+        }
+
+        // ==================== FILE INPUT ====================
+        function setupFileInput() {
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    handleFile(fileInput.files[0]);
+                    fileInput.value = ''; // Reset so same file can be re-selected
+                }
+            });
+        }
+
+        // ==================== CUSTOM SLUG LISTENER ====================
+        function setupCustomSlugListener() {
+            customSlug.addEventListener('input', () => {
+                const val = customSlug.value.trim();
+                // Validate: alphanumeric, hyphens, underscores only
+                if (val.length > 0 && !/^[a-zA-Z0-9_-]+$/.test(val)) {
+                    slugFeedback.textContent = 'Only letters, numbers, hyphens, and underscores allowed.';
+                    slugFeedback.classList.remove('hidden');
+                    slugFeedback.classList.add('text-yellow-400');
+                } else if (val.length > 30) {
+                    slugFeedback.textContent = 'Max 30 characters.';
+                    slugFeedback.classList.remove('hidden');
+                    slugFeedback.classList.add('text-yellow-400');
+                } else {
+                    slugFeedback.classList.add('hidden');
+                }
+                updateGeneratedLinks();
+            });
+        }
+
+        // ==================== FILE HANDLING ====================
+        function handleFile(file) {
+            if (isUploading) return;
+
+            // Validate file size
+            if (file.size > MAX_FILE_SIZE) {
+                showToast('❌ File too large! Max size is 70MB.', true);
+                shakeElement(dropzoneCard);
+                return;
+            }
+
+            // Validate file is not empty
+            if (file.size === 0) {
+                showToast('❌ Cannot upload an empty file.', true);
+                return;
+            }
+
+            currentFileData = {
+                file: file,
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                extension: getFileExtension(file.name),
+                category: getFileCategory(file.type, file.name),
+            };
+
+            startUpload();
+        }
+
+        function getFileExtension(filename) {
+            const parts = filename.split('.');
+            return parts.length > 1 ? parts.pop().toLowerCase() : '';
+        }
+
+        function getFileCategory(mimeType, filename) {
+            const ext = getFileExtension(filename);
+            if (mimeType.startsWith('image/')) return 'image';
+            if (mimeType.startsWith('video/')) return 'video';
+            if (mimeType.startsWith('audio/')) return 'audio';
+            if (mimeType === 'application/pdf' || ext === 'pdf') return 'pdf';
+            if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(ext)) return 'archive';
+            if (mimeType.includes('compressed') || mimeType.includes('zip')) return 'archive';
+            return 'file';
+        }
+
+        // ==================== UPLOAD SIMULATION ====================
+        async function startUpload() {
+            if (!currentFileData) return;
+
+            isUploading = true;
+
+            const file = currentFileData.file;
+
+            dropzoneCard.classList.add('hidden');
+            resultCard.classList.add('hidden');
+
+            progressSection.classList.remove('hidden');
+            progressSection.classList.add('animate-fade-in');
+
+            progressBarFill.style.width = '0%';
+            progressFilename.textContent = file.name;
+            progressSize.textContent = formatFileSize(file.size);
+            progressPercent.textContent = '0%';
+
+            const extension = file.name.split('.').pop();
+            const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+
+            const fileName =
+            `${Date.now()}-${Math.random().toString(36).substring(2)}-${safeName}`;
+
+            try {
+                // Start progress animation
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress > 90) progress = 90;
+                    progressBarFill.style.width = progress + '%';
+                    progressPercent.textContent = Math.round(progress) + '%';
+                }, 300);
+
+                // Upload to Supabase
+                const { data, error } = await supabaseClient.storage
+                    .from('uploads')
+                    .upload(fileName, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                clearInterval(progressInterval);
+
+                if (error) {
+                    throw error;
+                }
+
+                // Set progress to 100%
+                progressBarFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                // Get public URL
+                const { data: publicUrlData } = supabaseClient.storage
+                    .from('uploads')
+                    .getPublicUrl(fileName);
+
+                const publicUrl = publicUrlData.publicUrl;
+                
+                // Update current file data
+                currentFileData.realUrl = publicUrl;
+
+                currentFileData.url =
+                `${DEMO_BASE_URL}/f/${fileName}`;
+                currentFileData.localPreviewUrl = publicUrl;
+                currentFileData.slug = fileName;
+                currentFileData.expiration = selectedExpiration;
+                currentFileData.timestamp = Date.now();
+                currentFileData.id = fileName;
+
+                // Hide progress after a brief delay
+                setTimeout(() => {
+                    progressSection.classList.add('hidden');
+                    
+                    // Show result card
+                    updateResultCard();
+                    updateGeneratedLinks();
+                    
+                    resultCard.classList.remove('hidden');
+                    resultCard.classList.add('animate-slide-up');
+                    resultCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Add to history
+                    addToHistory(currentFileData);
+                    renderHistory();
+                    
+                    // Auto-copy link
+                    copyToClipboard(publicUrl);
+                    showToast('✅ Upload complete! Link copied.');
+                }, 500);
+
+            } catch (err) {
+                console.error('Upload error:', err);
+                
+                // Show error
+                progressSection.classList.add('hidden');
+                dropzoneCard.classList.remove('hidden');
+                
+                let errorMessage = '❌ Upload failed.';
+                if (err.message) {
+                    errorMessage += ' ' + err.message;
+                }
+                showToast(errorMessage, true);
+            } finally {
+                isUploading = false;
+            }
+        }
+
+        function completeUpload(localPreviewUrl) {
+            // Hide progress
+            progressSection.classList.add('hidden');
+
+            // Build the file URL
+            const fileUrl = currentFileData.url;
+
+            // Store in current data
+            currentFileData.url = fileUrl;
+            currentFileData.slug = generatedSlug;
+            currentFileData.localPreviewUrl = localPreviewUrl;
+            currentFileData.expiration = selectedExpiration;
+            currentFileData.timestamp = Date.now();
+            currentFileData.id = generateRandomSlug(8);
+
+            // Update result card
+            updateResultCard();
+            updateGeneratedLinks();
+
+            // Show result card
+            resultCard.classList.remove('hidden');
+            resultCard.classList.add('animate-slide-up');
+            resultCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Auto-copy direct link
+            copyToClipboard(fileUrl);
+            showToast('✅ Direct link auto-copied!');
+
+            // Add to history
+            addToHistory(currentFileData);
+            renderHistory();
+
+            isUploading = false;
+        }
+
+        function updateResultCard() {
+            const data = currentFileData;
+            if (!data) return;
+
+            resultFilename.textContent = data.name;
+            resultSize.textContent = formatFileSize(data.size);
+
+            // File type badge
+            const badgeColors = {
+                image: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+                video: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                audio: 'bg-green-500/20 text-green-300 border-green-500/30',
+                pdf: 'bg-red-500/20 text-red-300 border-red-500/30',
+                archive: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+                file: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+            };
+            const badgeLabels = {
+                image: '🖼️ IMAGE',
+                video: '🎬 VIDEO',
+                audio: '🎵 AUDIO',
+                pdf: '📄 PDF',
+                archive: '📦 ARCHIVE',
+                file: '📁 FILE',
+            };
+
+            fileTypeBadge.className = 'px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ' +
+                (badgeColors[data.category] || badgeColors.file);
+            fileTypeBadge.textContent = badgeLabels[data.category] || badgeLabels.file;
+
+            // Preview
+            renderPreview(data);
+        }
+
+        function renderPreview(data) {
+            previewContainer.innerHTML = '';
+            const url = data.localPreviewUrl;
+
+            switch (data.category) {
+                case 'image':
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = data.name;
+                    img.className = 'preview-media max-w-full';
+                    img.style.maxHeight = '320px';
+                    img.onload = () => URL.revokeObjectURL(url); // Clean up after display
+                    previewContainer.appendChild(img);
+                    break;
+                case 'video':
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.controls = true;
+                    video.className = 'preview-media';
+                    video.style.maxHeight = '300px';
+                    video.onloadeddata = () => URL.revokeObjectURL(url);
+                    previewContainer.appendChild(video);
+                    break;
+                case 'audio':
+                    const audio = document.createElement('audio');
+                    audio.src = url;
+                    audio.controls = true;
+                    audio.className = 'preview-media w-full';
+                    audio.style.maxHeight = '60px';
+                    audio.onloadeddata = () => URL.revokeObjectURL(url);
+                    previewContainer.appendChild(audio);
+                    break;
+                default:
+                    // Show file icon placeholder
+                    const iconMap = {
+                        pdf: '📄',
+                        archive: '📦',
+                        file: '📁',
+                    };
+                    const icon = iconMap[data.category] || '📁';
+                    const div = document.createElement('div');
+                    div.className =
+                        'w-24 h-24 rounded-2xl bg-white/5 flex items-center justify-center text-5xl border border-white/10';
+                    div.textContent = icon;
+                    previewContainer.appendChild(div);
+                    break;
+            }
+        }
+
+        function updateGeneratedLinks() {
+
+            if (!currentFileData?.url) return;
+
+            const fileUrl = currentFileData.url;
+
+            directLinkDisplay.textContent = fileUrl;
+
+            htmlLinkDisplay.textContent =
+                `<a href="${fileUrl}">Download ${currentFileData?.name || 'File'}</a>`;
+
+            markdownLinkDisplay.textContent =
+                `[Download ${currentFileData?.name || 'File'}](${fileUrl})`;
+        }
+
+        // ==================== COPY FUNCTIONS ====================
+        function copyLink(type) {
+
+            if (!currentFileData) return;
+
+            const fileUrl = currentFileData.url;
+
+            let textToCopy = '';
+            let clickedButton = event.target;
+
+            switch (type) {
+
+                case 'direct':
+                    textToCopy = fileUrl;
+                    break;
+
+                case 'html':
+                    textToCopy =
+                        `<a href="${fileUrl}">Download ${currentFileData.name}</a>`;
+                    break;
+
+                case 'markdown':
+                    textToCopy =
+                        `[Download ${currentFileData.name}](${fileUrl})`;
+                    break;
+
+                default:
+                    textToCopy = fileUrl;
+            }
+
+            copyToClipboard(textToCopy);
+
+            // Button animation
+            const originalText = clickedButton.innerHTML;
+
+            clickedButton.innerHTML = '✅ Copied';
+            clickedButton.classList.add(
+                'bg-emerald-500/30',
+                'text-emerald-200'
+            );
+
+            setTimeout(() => {
+                clickedButton.innerHTML = originalText;
+
+                clickedButton.classList.remove(
+                    'bg-emerald-500/30',
+                    'text-emerald-200'
+                );
+            }, 1800);
+
+            showToast('✅ Link copied to clipboard!');
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).catch(() => {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+            } catch (e) {
+                console.warn('Copy failed:', e);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // ==================== OPEN FILE ====================
+        function openFile() {
+            if (!currentFileData || !currentFileData.localPreviewUrl) return;
+            window.open(currentFileData.realUrl, '_blank');
+        }
+
+        // ==================== UPLOAD ANOTHER ====================
+        function uploadAnother() {
+            resultCard.classList.add('hidden');
+            progressSection.classList.add('hidden');
+            dropzoneCard.classList.remove('hidden');
+            dropzoneCard.classList.add('animate-fade-in');
+            currentFileData = null;
+            generatedSlug = '';
+            customSlug.value = '';
+            previewContainer.innerHTML = '';
+            isUploading = false;
+            dropzoneCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => dropzoneCard.classList.remove('animate-fade-in'), 500);
+        }
+
+        // ==================== HISTORY MANAGEMENT ====================
+        function addToHistory(data) {
+            const historyEntry = {
+                id: data.id,
+                name: data.name,
+                size: data.size,
+                category: data.category,
+                url: data.url,
+                slug: data.slug,
+                expiration: data.expiration,
+                timestamp: data.timestamp,
+                // Don't store localPreviewUrl (it's a blob URL that expires)
+            };
+            uploadHistory.unshift(historyEntry);
+            // Keep max 20 entries
+            if (uploadHistory.length > 20) uploadHistory = uploadHistory.slice(0, 20);
+            saveHistory();
+        }
+
+        function saveHistory() {
+            try {
+                localStorage.setItem('quickhost_history', JSON.stringify(uploadHistory));
+            } catch (e) {
+                console.warn('Could not save history to localStorage:', e);
+            }
+        }
+
+        function loadHistory() {
+            try {
+                const stored = localStorage.getItem('quickhost_history');
+                if (stored) {
+                    uploadHistory = JSON.parse(stored);
+                }
+            } catch (e) {
+                uploadHistory = [];
+            }
+        }
+
+        function clearHistory() {
+            uploadHistory = [];
+            saveHistory();
+            renderHistory();
+            showToast('🗑️ History cleared.');
+        }
+
+        function renderHistory() {
+            if (uploadHistory.length === 0) {
+                historySection.classList.add('hidden');
+                return;
+            }
+            historySection.classList.remove('hidden');
+
+            historyList.innerHTML = uploadHistory.map(entry => {
+                const timeAgo = getTimeAgo(entry.timestamp);
+                const categoryEmoji = {
+                    image: '🖼️',
+                    video: '🎬',
+                    audio: '🎵',
+                    pdf: '📄',
+                    archive: '📦',
+                    file: '📁',
+                };
+                const emoji = categoryEmoji[entry.category] || '📁';
+                return `
+              <div class="flex items-center gap-3 px-4 py-3 bg-white/3 rounded-xl border border-white/5 hover:border-white/15 smooth-transition group">
+                <span class="text-xl flex-shrink-0">${emoji}</span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm text-white truncate font-medium">${escapeHTML(entry.name)}</p>
+                  <p class="text-xs text-gray-500">${formatFileSize(entry.size)} · ${timeAgo}</p>
+                </div>
+                <button
+                  onclick="copyHistoryLink('${entry.url}')"
+                  class="flex-shrink-0 px-3 py-1.5 text-xs bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 rounded-lg smooth-transition opacity-70 group-hover:opacity-100 font-medium"
+                >
+                  Copy
+                </button>
+              </div>
+            `;
+            }).join('');
+        }
+
+        function copyHistoryLink(url) {
+
+            copyToClipboard(url);
+
+            const clickedButton = event.target;
+
+            const originalText = clickedButton.innerHTML;
+
+            clickedButton.innerHTML = '✅ Copied';
+
+            clickedButton.classList.remove(
+                'bg-indigo-500/15',
+                'hover:bg-indigo-500/25',
+                'text-indigo-300'
+            );
+
+            clickedButton.classList.add(
+                'bg-emerald-500/30',
+                'text-emerald-200'
+            );
+
+            setTimeout(() => {
+
+                clickedButton.innerHTML = 'Copy';
+
+                clickedButton.classList.remove(
+                    'bg-emerald-500/30',
+                    'text-emerald-200'
+                );
+
+                clickedButton.classList.add(
+                    'bg-indigo-500/15',
+                    'hover:bg-indigo-500/25',
+                    'text-indigo-300'
+                );
+
+            }, 1800);
+
+            showToast('✅ Link copied!');
+        }
+
+        // ==================== TOAST ====================
+        function showToast(message, isError = false) {
+            toast.textContent = message;
+            if (isError) {
+                toast.classList.add('bg-red-600/90', 'border-red-400/30');
+                toast.classList.remove('bg-emerald-600/90', 'border-emerald-400/30');
+            } else {
+                toast.classList.remove('bg-red-600/90', 'border-red-400/30');
+                toast.classList.add('bg-emerald-600/90', 'border-emerald-400/30');
+            }
+            toast.classList.add('show');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            const size = (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1);
+            return `${size} ${units[i]}`;
+        }
+
+        function generateRandomSlug(length = 8) {
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function getTimeAgo(timestamp) {
+            const now = Date.now();
+            const diff = now - timestamp;
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (seconds < 60) return 'just now';
+            if (minutes < 60) return `${minutes}m ago`;
+            if (hours < 24) return `${hours}h ago`;
+            if (days < 30) return `${days}d ago`;
+            return new Date(timestamp).toLocaleDateString();
+        }
+
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function shakeElement(el) {
+            el.style.animation = 'none';
+            el.offsetHeight; // trigger reflow
+            el.style.animation = 'shake 0.5s ease';
+            setTimeout(() => {
+                el.style.animation = '';
+            }, 500);
+        }
+
+        // ==================== KEYBOARD SUPPORT ====================
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+U or Cmd+Shift+U to trigger upload (when dropzone is visible)
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'U') {
+                if (!dropzoneCard.classList.contains('hidden') && !isUploading) {
+                    e.preventDefault();
+                    fileInput.click();
+                }
+            }
+            // Escape to go back to upload screen
+            if (e.key === 'Escape' && !resultCard.classList.contains('hidden') && !isUploading) {
+                uploadAnother();
+            }
+        });
+
+        // ==================== ADD SHAKE KEYFRAMES DYNAMICALLY ====================
+        const shakeStyle = document.createElement('style');
+        shakeStyle.textContent = `
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          15% { transform: translateX(-8px); }
+          30% { transform: translateX(8px); }
+          45% { transform: translateX(-6px); }
+          60% { transform: translateX(6px); }
+          75% { transform: translateX(-3px); }
+          90% { transform: translateX(3px); }
+        }
+      `;
+        document.head.appendChild(shakeStyle);
+
+        // ==================== EXPOSE FUNCTIONS GLOBALLY ====================
+        window.copyLink = copyLink;
+        window.openFile = openFile;
+        window.uploadAnother = uploadAnother;
+        window.copyHistoryLink = copyHistoryLink;
+        window.clearHistory = clearHistory;
+
+        // ==================== START APP ====================
+        init();
+
+        console.log('🚀 QuickHost ready!');
+        console.log('☁️ Server connected successfully.');
+        console.log('🔗 To integrate Firebase Storage, replace the startUpload() function.');
+        console.log('💡 Tip: Press Ctrl+Shift+U to open file browser, Esc to reset.');
+        console.log('📁 Max file size:', formatFileSize(MAX_FILE_SIZE));
+    })();
+
+</script>
+</body>
+</html>
