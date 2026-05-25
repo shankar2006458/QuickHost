@@ -500,6 +500,20 @@
         SUPABASE_ANON_KEY
     );
 
+
+    // ==================== HASH ROUTER ====================
+    const currentHash = window.location.hash;
+
+    if (currentHash.startsWith('#/f/')) {
+
+        const fileName = currentHash.replace('#/f/', '');
+
+        const directUrl =
+        `${SUPABASE_URL}/storage/v1/object/public/uploads/${fileName}`;
+
+        window.location.replace(directUrl);
+    }
+
     (function() {
         // ==================== DOM ELEMENTS ====================
         const dropzoneCard = document.getElementById('dropzoneCard');
@@ -766,7 +780,7 @@
                 currentFileData.realUrl = publicUrl;
 
                 currentFileData.url =
-                `${DEMO_BASE_URL}/f/${fileName}`;
+                `${DEMO_BASE_URL}/#/f/${fileName}`;
                 currentFileData.localPreviewUrl = publicUrl;
                 currentFileData.slug = fileName;
                 currentFileData.expiration = selectedExpiration;
