@@ -544,7 +544,9 @@
 
         // ==================== STATE ====================
         const MAX_FILE_SIZE = 70 * 1024 * 1024; // 70MB
-        const DEMO_BASE_URL = window.location.origin;
+        const DEMO_BASE_URL =
+        window.location.origin +
+        window.location.pathname.replace(/\/$/, '');
         let currentFileData = null;
         let generatedSlug = '';
         let selectedExpiration = 'permanent'; // default
