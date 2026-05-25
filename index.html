@@ -338,12 +338,12 @@
                     <h2 class="text-xl sm:text-2xl font-semibold text-white">Drag & Drop Files Here</h2>
                     <p class="text-gray-400 text-sm sm:text-base">or click to browse your device</p>
                     <div class="flex flex-wrap gap-2 justify-center mt-2">
-                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">Images</span>
-                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">Videos</span>
-                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">Audio</span>
-                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">PDFs</span>
-                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">ZIP</span>
-                        <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full">Any File</span>
+                        <span class="text-xs text-gray-400 bg-white/5 px-2.5 py-1 rounded-full">Images</span>
+                        <span class="text-xs text-gray-400 bg-white/5 px-2.5 py-1 rounded-full">Videos</span>
+                        <span class="text-xs text-gray-400 bg-white/5 px-2.5 py-1 rounded-full">Audio</span>
+                        <span class="text-xs text-gray-400 bg-white/5 px-2.5 py-1 rounded-full">PDFs</span>
+                        <span class="text-xs text-gray-400 bg-white/5 px-2.5 py-1 rounded-full">ZIP</span>
+                        <span class="text-xs text-gray-400 bg-white/5 px-2.5 py-1 rounded-full">Any File</span>
                     </div>
                 </div>
                 <!-- Hidden file input -->
@@ -483,9 +483,18 @@
 </main>
 
 <!-- Footer -->
-<footer class="mt-12 text-center text-xs text-gray-600 pb-6">
-    <p>QuickHost — Free & Anonymous File Hosting powered by Supabase.</p>
-    <p class="mt-1">Built with ❤️ · Ready for Firebase Storage integration</p>
+<footer class="mt-12 text-center text-xs text-gray-500 pb-6">
+    
+    <p>QuickHost — Free & Anonymous File Hosting</p>
+
+    <p class="mt-2">
+        Fast • Secure • Free File Hosting
+    </p>
+
+    <p class="mt-2">
+        Built with ❤️ By Shankar Prasad Pyke
+    </p>
+
 </footer>
 </div>
 
@@ -751,6 +760,11 @@
                 let progress = 0;
                 const progressInterval = setInterval(() => {
                     progress += Math.random() * 15;
+                    const fakeSpeed =
+                    (Math.random() * 4 + 1).toFixed(1);
+
+                    progressSpeed.textContent =
+                    `${fakeSpeed} MB/s`;
                     if (progress > 90) progress = 90;
                     progressBarFill.style.width = progress + '%';
                     progressPercent.textContent = Math.round(progress) + '%';
