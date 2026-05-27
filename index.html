@@ -258,6 +258,42 @@
             font-size: .72rem;
             color: rgba(255,255,255,.5);
         }
+
+        /* Popup animation */
+        #historyPopup {
+            opacity: 0;
+            visibility: hidden;
+            transition:
+                opacity 0.32s ease,
+                visibility 0.32s ease;
+        }
+
+        #historyPopup.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #historyPopup .glass-card {
+            transform: scale(0.92) translateY(28px);
+            opacity: 0;
+            transition:
+                transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.28s ease;
+        }
+
+        #historyPopup.show .glass-card {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        /* History item hover effect */
+        .history-item {
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.06) !important;
+        }
     </style>
 </head>
 <body class="text-white antialiased">
@@ -463,6 +499,42 @@
 <div id="historyList" class="space-y-2 max-h-80 overflow-y-auto">
     <!-- Filled by JS -->
 </div>
+<!-- Show More Button -->
+<div id="showMoreContainer" class="mt-4 hidden">
+    <button onclick="openHistoryPopup()" 
+    class="w-full py-2.5 text-sm font-medium text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl smooth-transition border border-indigo-400/20 hover:border-indigo-400/40">
+        📋 Show All History ({{count}} total)
+    </button>
+</div>
+</div>
+
+<!-- History Popup Modal -->
+<div id="historyPopup" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeHistoryPopup()"></div>
+    
+    <!-- Popup Content -->
+    <div class="relative glass-card p-6 sm:p-8 w-full max-w-2xl max-h-[80vh] flex flex-col z-10">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">📁 All Upload History</h3>
+            <button onclick="closeHistoryPopup()" 
+            class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center smooth-transition text-gray-400 hover:text-white">
+                ✕
+            </button>
+        </div>
+        
+        <div id="popupHistoryList" class="flex-1 space-y-2 overflow-y-auto pr-2">
+            <!-- Filled by JS -->
+        </div>
+        
+        <div class="mt-6 pt-4 border-t border-white/10 flex justify-between">
+            <p id="popupTotalCount" class="text-sm text-gray-400">Total: 0 files</p>
+            <button onclick="clearHistory()" 
+            class="text-xs text-red-400 hover:text-red-300 smooth-transition px-3 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20">
+                🗑️ Clear All
+            </button>
+        </div>
+    </div>
 </div>
 </main>
 
@@ -530,6 +602,10 @@
         const expirationOptions = document.getElementById('expirationOptions');
         const historySection = document.getElementById('historySection');
         const historyList = document.getElementById('historyList');
+        const showMoreContainer = document.getElementById('showMoreContainer');
+        const historyPopup = document.getElementById('historyPopup');
+        const popupHistoryList = document.getElementById('popupHistoryList');
+        const popupTotalCount = document.getElementById('popupTotalCount');
         const toast = document.getElementById('toast');
         const allCopyBtns = document.querySelectorAll('[data-copy-btn]');
 
@@ -1074,44 +1150,107 @@
             uploadHistory = [];
             saveHistory();
             renderHistory();
+            
+            // If popup is open, close it
+            if (!historyPopup.classList.contains('hidden')) {
+                closeHistoryPopup();
+            }
+            
             showToast('🗑️ History cleared.');
         }
 
         function renderHistory() {
             if (uploadHistory.length === 0) {
                 historySection.classList.add('hidden');
+                showMoreContainer.classList.add('hidden');
                 return;
             }
+            
             historySection.classList.remove('hidden');
-
-            historyList.innerHTML = uploadHistory.map(entry => {
-                const timeAgo = getTimeAgo(entry.timestamp);
-                const categoryEmoji = {
-                    image: '🖼️',
-                    video: '🎬',
-                    audio: '🎵',
-                    pdf: '📄',
-                    archive: '📦',
-                    file: '📁',
-                };
-                const emoji = categoryEmoji[entry.category] || '📁';
-                return `
-              <div class="flex items-center gap-3 px-4 py-3 bg-white/3 rounded-xl border border-white/5 hover:border-white/15 smooth-transition group">
-                <span class="text-xl flex-shrink-0">${emoji}</span>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm text-white truncate font-medium">${escapeHTML(entry.name)}</p>
-                  <p class="text-xs text-gray-500">${formatFileSize(entry.size)} · ${timeAgo}</p>
-                </div>
-                <button
-                  onclick="copyHistoryLink('${entry.url}')"
-                  class="flex-shrink-0 px-3 py-1.5 text-xs bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 rounded-lg smooth-transition opacity-70 group-hover:opacity-100 font-medium"
-                >
-                  Copy
-                </button>
-              </div>
-            `;
+            
+            // Show only first 3 items in the main view
+            const visibleItems = uploadHistory.slice(0, 3);
+            const hasMore = uploadHistory.length > 3;
+            
+            // Render visible items
+            historyList.innerHTML = visibleItems.map(entry => {
+                return createHistoryItemHTML(entry);
             }).join('');
+            
+            // Show/hide "Show More" button
+            if (hasMore) {
+                showMoreContainer.classList.remove('hidden');
+                const showMoreBtn = showMoreContainer.querySelector('button');
+                showMoreBtn.textContent = `📋 Show All History (${uploadHistory.length} total)`;
+            } else {
+                showMoreContainer.classList.add('hidden');
+            }
         }
+
+        function createHistoryItemHTML(entry) {
+            const timeAgo = getTimeAgo(entry.timestamp);
+            const categoryEmoji = {
+                image: '🖼️',
+                video: '🎬',
+                audio: '🎵',
+                pdf: '📄',
+                archive: '📦',
+                file: '📁',
+            };
+            const emoji = categoryEmoji[entry.category] || '📁';
+            
+            return `
+                <div class="history-item flex items-center gap-3 px-4 py-3 bg-white/3 rounded-xl border border-white/5 smooth-transition group">
+                    <span class="text-xl flex-shrink-0">${emoji}</span>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm text-white truncate font-medium">${escapeHTML(entry.name)}</p>
+                        <p class="text-xs text-gray-500">${formatFileSize(entry.size)} · ${timeAgo}</p>
+                    </div>
+                    <button
+                        onclick="event.stopPropagation(); copyHistoryLink('${entry.url}')"
+                        class="flex-shrink-0 px-3 py-1.5 text-xs bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 rounded-lg smooth-transition opacity-70 group-hover:opacity-100 font-medium"
+                    >
+                        Copy
+                    </button>
+                </div>
+            `;
+        }
+
+        function openHistoryPopup() {
+            // Render all history items in popup
+            popupHistoryList.innerHTML = uploadHistory.map(entry => {
+                return createHistoryItemHTML(entry);
+            }).join('');
+            
+            // Update total count
+            popupTotalCount.textContent = `Total: ${uploadHistory.length} file${uploadHistory.length !== 1 ? 's' : ''}`;
+            
+            // Show popup with animation
+            historyPopup.classList.remove('hidden');
+            // Force reflow
+            historyPopup.offsetHeight;
+            historyPopup.classList.add('show');
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeHistoryPopup() {
+            historyPopup.classList.remove('show');
+            
+            // Wait for animation to finish before hiding
+            setTimeout(() => {
+                historyPopup.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        // Close popup on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !historyPopup.classList.contains('hidden')) {
+                closeHistoryPopup();
+            }
+        });
 
         function copyHistoryLink(url) {
 
@@ -1255,6 +1394,8 @@
         window.uploadAnother = uploadAnother;
         window.copyHistoryLink = copyHistoryLink;
         window.clearHistory = clearHistory;
+        window.openHistoryPopup = openHistoryPopup;
+        window.closeHistoryPopup = closeHistoryPopup; 
 
         // ==================== START APP ====================
         init();
